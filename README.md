@@ -1,0 +1,249 @@
+<img src="https://raw.githubusercontent.com/icazemier/gibbons/master/gibbons.png" width="200" />
+
+# Gibbons for PostgreSQL
+
+Manage user groups and permissions in [PostgreSQL](https://www.postgresql.org/) using bitwise operations with [Gibbons](https://github.com/icazemier/gibbons). Store and query thousands of permissions using minimal space.
+
+## Install
+
+```bash
+npm install @icazemier/gibbons-postgresql pg
+```
+
+`pg` is a peer dependency — you install the driver alongside this library.
+
+## Quick Start
+
+### 1. Create a config file
+
+`.gibbons-postgresqlrc.json` in your project root:
+
+```json
+{
+    "dbName": "myapp",
+    "permissionByteLength": 256,
+    "groupByteLength": 256,
+    "postgresqlMutationConcurrency": 10,
+    "dbStructure": {
+        "user": { "tableName": "users" },
+        "group": { "tableName": "groups" },
+        "permission": { "tableName": "permissions" }
+    }
+}
+```
+
+### 2. Seed the database
+
+```bash
+npx gibbons-postgresql init --uri postgresql://localhost:5432/myapp
+```
+
+This creates the tables, installs a helper SQL function, and inserts pre-allocated permission and group slots. With 256 bytes you get 2,048 slots each.
+
+### 3. Use it
+
+```typescript
+import { GibbonsPostgreSql, ConfigLoader } from "@icazemier/gibbons-postgresql";
+
+const config = await ConfigLoader.load();
+const gibbonsDb = new GibbonsPostgreSql(
+  "postgresql://localhost:5432/myapp",
+  config
+);
+await gibbonsDb.initialize();
+
+// Create permissions
+const editPerm = await gibbonsDb.allocatePermission({ name: "posts.edit" });
+const deletePerm = await gibbonsDb.allocatePermission({ name: "posts.delete" });
+
+// Create a group and assign permissions
+const admins = await gibbonsDb.allocateGroup({ name: "Admins" });
+await gibbonsDb.subscribePermissionsToGroups(
+    [admins.gibbonGroupPosition],
+    [editPerm.gibbonPermissionPosition, deletePerm.gibbonPermissionPosition]
+);
+
+// Create a user and assign to group
+const user = await gibbonsDb.createUser({ name: "Alice", email: "alice@example.com" });
+await gibbonsDb.subscribeUsersToGroups({ id: user.id }, [admins.gibbonGroupPosition]);
+
+// Check permissions
+const canEdit = gibbonsDb.validateUserPermissionsForAnyPermissions(
+    user.permissionsGibbon,
+    [editPerm.gibbonPermissionPosition]
+);
+// canEdit === true
+```
+
+## Using Your Own Pool
+
+You can inject an existing `pg.Pool` instead of a URI. This lets you share the pool across your app and run transactions that span gibbons calls together with your own queries:
+
+```typescript
+import { Pool } from "pg";
+import {
+  GibbonsPostgreSql,
+  ConfigLoader,
+  withTransaction,
+} from "@icazemier/gibbons-postgresql";
+
+const pool = new Pool({ connectionString: "postgresql://localhost:5432/myapp" });
+const config = await ConfigLoader.load();
+
+const gibbonsDb = new GibbonsPostgreSql(pool, config);
+await gibbonsDb.initialize();
+
+// Wrap multiple operations in a single transaction
+await withTransaction(pool, async (client) => {
+    const perm = await gibbonsDb.allocatePermission({ name: "reports.view" }, client);
+    const group = await gibbonsDb.allocateGroup({ name: "Viewers" }, client);
+    await gibbonsDb.subscribePermissionsToGroups(
+        [group.gibbonGroupPosition],
+        [perm.gibbonPermissionPosition],
+        client
+    );
+});
+```
+
+Every public method accepts an optional `client` parameter. When omitted, multi-step methods automatically use an internal transaction.
+
+## API Overview
+
+### Permissions
+
+| Method | Description |
+|--------|-------------|
+| `allocatePermission(data, client?)` | Allocate a new permission slot |
+| `deallocatePermissions(positions, client?)` | Deallocate and remove from groups/users |
+| `updatePermissionMetadata(position, data, client?)` | Update custom fields |
+| `findPermissions(positions)` | Find by positions |
+| `findAllAllocatedPermissions()` | List all allocated |
+| `validateAllocatedPermissions(positions)` | Check if allocated in DB |
+
+### Groups
+
+| Method | Description |
+|--------|-------------|
+| `allocateGroup(data, client?)` | Allocate a new group slot |
+| `deallocateGroups(positions, client?)` | Deallocate and remove from users |
+| `updateGroupMetadata(position, data, client?)` | Update custom fields |
+| `subscribePermissionsToGroups(groups, perms, client?)` | Add permissions to groups |
+| `unsubscribePermissionsFromGroups(groups, perms, client?)` | Remove permissions from groups |
+| `findGroups(positions)` | Find by positions |
+| `findGroupsByPermissions(positions)` | Find groups that have certain permissions |
+| `findAllAllocatedGroups()` | List all allocated |
+| `validateAllocatedGroups(positions)` | Check if allocated in DB |
+
+### Users
+
+| Method | Description |
+|--------|-------------|
+| `createUser(data, client?)` | Create with empty gibbons |
+| `removeUser(filter, client?)` | Delete by filter |
+| `subscribeUsersToGroups(filter, groups, client?)` | Add users to groups |
+| `unsubscribeUsersFromGroups(filter, groups, client?)` | Remove users from groups |
+| `findUsers(filter)` | Query by `UserFilter` |
+| `findUsersByGroups(positions)` | Find by group membership |
+| `findUsersByPermissions(positions)` | Find by permission |
+| `updateUserMetadata(filter, data, client?)` | Update custom fields |
+
+### Validation (synchronous, no DB call)
+
+| Method | Description |
+|--------|-------------|
+| `validateUserPermissionsForAllPermissions(userPerms, perms)` | Has ALL permissions? |
+| `validateUserPermissionsForAnyPermissions(userPerms, perms)` | Has ANY permission? |
+| `validateUserGroupsForAllGroups(userGroups, groups)` | In ALL groups? |
+| `validateUserGroupsForAnyGroups(userGroups, groups)` | In ANY group? |
+
+### Utilities
+
+| Method/Function | Description |
+|--------|-------------|
+| `getPool()` | Get the underlying `pg.Pool` |
+| `getPermissionsGibbonForGroups(groups)` | Aggregate permissions from groups |
+| `withTransaction(pool, fn)` | Run a callback inside a PostgreSQL transaction |
+| `buildUserWhere(filter)` | Compile a `UserFilter` to a `WhereClause` for advanced usage |
+
+## User filters
+
+Users are looked up via a typed `UserFilter`:
+
+```typescript
+interface UserFilter {
+  id?: string | string[] | { in: string[] };
+  metadata?: Record<string, MetadataComparator>;
+}
+```
+
+`metadata` keys map to `metadata->>'<key>'` in the JSONB column. Supported operators per key:
+
+| Operator | Example |
+|----------|---------|
+| Bare value (eq) | `{ email: "alice@example.com" }` |
+| `eq`/`ne` | `{ email: { ne: "x@y.com" } }` |
+| `in`/`nin` | `{ role: { in: ["admin", "editor"] } }` |
+| `like`/`ilike` | `{ name: { ilike: "%cooper%" } }` (case-insensitive substring) |
+| `gt`/`gte`/`lt`/`lte` | `{ age: { gte: 18 } }` (numeric compare) |
+| `isNull` | `{ deleted_at: { isNull: true } }` |
+
+## Config Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `dbName` | string | PostgreSQL database name (kept for parity; the URI determines the actual database) |
+| `permissionByteLength` | number | Bytes for permissions (256 = 2,048 slots) |
+| `groupByteLength` | number | Bytes for groups (256 = 2,048 slots) |
+| `postgresqlMutationConcurrency` | number | Concurrency limit for bulk operations |
+| `dbStructure.user.tableName` | string | User table (can be existing; columns are added if absent) |
+| `dbStructure.group.tableName` | string | Group table (managed by Gibbons) |
+| `dbStructure.permission.tableName` | string | Permission table (managed by Gibbons) |
+
+Config is loaded via [cosmiconfig](https://github.com/davidtheclark/cosmiconfig), so `.gibbons-postgresqlrc.json`, `.yaml`, or a `gibbons-postgresql` key in `package.json` all work.
+
+## How it works under the hood
+
+- Group memberships and permissions are stored as compact `BYTEA` bitmasks.
+- A helper SQL function `gibbons_bytea_any_bit(a, b)` replaces MongoDB's `$bitsAnySet` operator; it returns `TRUE` when any bit is set in both buffers.
+- Position slots (1..N) live in the `groups` and `permissions` tables with the position itself as the primary key.
+- Allocation uses `UPDATE ... WHERE position = (SELECT ... FROM ... WHERE NOT allocated ORDER BY position ASC LIMIT 1 FOR UPDATE SKIP LOCKED)` so concurrent allocations never collide.
+- Each entity has a `metadata JSONB` column that holds arbitrary caller-supplied fields. They are flattened onto the returned object so consumers see `{ gibbonGroupPosition, gibbonIsAllocated, permissionsGibbon, name, description, ... }`.
+
+## FAQ
+
+**What is this?**
+A permissions library. It stores group memberships and permissions as compact `BYTEA` bitmasks in PostgreSQL, using a helper SQL function for fast "any bit set" queries.
+
+**What is this NOT?**
+An ORM, an authentication solution, or a user management system. It only manages the group/permission layer.
+
+**Can I use an existing user table?**
+Yes. Run the seeder against your DB; missing tables and columns are created. The library only touches `id`, `groups_gibbon`, `permissions_gibbon`, and the `metadata` JSONB column.
+
+**How many permissions/groups can I have?**
+`byteLength * 8`. So 256 bytes = 2,048, 1024 bytes = 8,192.
+
+**Can I change byte lengths later?**
+Yes. Use `expandPermissions` / `expandGroups` to grow, or `shrinkPermissions` / `shrinkGroups` to reduce. These methods re-seed slots, pad or truncate existing `BYTEA` fields, and update the config — all inside a transaction.
+
+**Do I need any extensions?**
+The library enables `pgcrypto` (for `gen_random_uuid()`) and creates a single helper function in the `public` schema. No other extensions are required.
+
+**Can I pass my own Pool?**
+Yes. `new GibbonsPostgreSql(myPool, config)` reuses your pool, so clients you start from it work with all facade methods.
+
+**How do transactions work?**
+Multi-step methods (deallocate, subscribe, unsubscribe) auto-wrap in a transaction when no `client` is passed. To combine multiple calls in one transaction, pass your own `client` from `withTransaction(pool, ...)`.
+
+**What happens when all slots are used?**
+`allocatePermission` / `allocateGroup` throws. Use `expandPermissions` / `expandGroups` to increase capacity at runtime.
+
+## License
+
+MIT
+
+## Contributing
+
+Issues and PRs welcome at [github.com/icazemier/gibbons-postgresql](https://github.com/icazemier/gibbons-postgresql).
+
+This project uses [conventional commits](https://www.conventionalcommits.org/) with automated semantic versioning. See [SEMANTIC-VERSIONING-QUICKSTART.md](SEMANTIC-VERSIONING-QUICKSTART.md) for details.

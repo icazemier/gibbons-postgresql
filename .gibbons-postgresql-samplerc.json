@@ -1,0 +1,17 @@
+{
+  "dbName": "test",
+  "permissionByteLength": 1024,
+  "groupByteLength": 1024,
+  "postgresqlMutationConcurrency": 5,
+  "dbStructure": {
+    "user": {
+      "tableName": "gibbon_user"
+    },
+    "group": {
+      "tableName": "gibbon_group"
+    },
+    "permission": {
+      "tableName": "gibbon_permission"
+    }
+  }
+}

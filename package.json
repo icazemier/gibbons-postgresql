@@ -1,0 +1,124 @@
+{
+  "name": "@icazemier/gibbons-postgresql",
+  "private": false,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Gibbons is a Node.js module which helps in managing user groups and user permissions with `bitwise` efficiency.",
+  "contributors": [
+    {
+      "name": "Ivo Cazemier",
+      "email": "git@warmemelk.nl",
+      "url": "https://github.com/icazemier"
+    }
+  ],
+  "keywords": [
+    "user permissions",
+    "user groups",
+    "bitwise",
+    "PostgreSQL",
+    "SQL",
+    "cli"
+  ],
+  "files": [
+    "build/"
+  ],
+  "bin": {
+    "@icazemier/gibbons-postgresql": "./build/esm/bin/cli.js",
+    "gibbons-postgresql": "./build/esm/bin/cli.js"
+  },
+  "main": "./build/cjs/index.js",
+  "module": "./build/esm/index.js",
+  "exports": {
+    ".": {
+      "import": "./build/esm/index.js",
+      "require": "./build/cjs/index.js"
+    }
+  },
+  "types": "./build/esm/index.d.ts",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "scripts": {
+    "test": "cross-env NODE_ENV=test vitest run --coverage",
+    "build:esm": "tsc -p tsconfig-build-esm.json",
+    "build:cjs": "tsc -p tsconfig-build-cjs.json",
+    "build": "rimraf build && npm run build:esm && npm run build:cjs && npm run fixup && npm run docs",
+    "docs": "typedoc --out docs src/index.ts",
+    "fixup": "node ./fixup.mjs",
+    "clean:build": "rimraf build",
+    "clean:docs": "rimraf docs",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "prepare": "husky",
+    "release": "semantic-release",
+    "release:dry": "semantic-release --dry-run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/icazemier/gibbons-postgresql"
+  },
+  "homepage": "https://github.com/icazemier/gibbons-postgresql#readme",
+  "bugs": {
+    "url": "https://github.com/icazemier/gibbons-postgresql/issues"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "pg": "^8.11.0"
+  },
+  "overrides": {
+    "minimatch": "^10.2.4",
+    "lodash": "^4.18.1",
+    "lodash-es": "^4.18.1",
+    "vite": "^7.3.2",
+    "fast-uri": "^3.1.2",
+    "follow-redirects": "^1.16.0",
+    "postcss": "^8.5.14",
+    "picomatch": "^4.0.4",
+    "ip-address": "^10.2.0",
+    "brace-expansion": "^5.0.6"
+  },
+  "dependencies": {
+    "@icazemier/gibbons": "^6.0.7",
+    "cosmiconfig": "^9.0.0",
+    "pg-cursor": "^2.10.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@eslint/js": "^10.0.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@types/node": "^22.15.15",
+    "@types/pg": "^8.11.0",
+    "@types/pg-cursor": "^2.7.0",
+    "@types/yargs": "^17.0.33",
+    "@vitest/coverage-v8": "^4.0.18",
+    "conventional-changelog-conventionalcommits": "^8.0.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.3.1",
+    "embedded-postgres": "^17.0.0",
+    "eslint": "^10.0.0",
+    "eslint-config-prettier": "^10.1.3",
+    "eslint-plugin-prettier": "^5.4.0",
+    "husky": "^9.1.7",
+    "noop-stream": "^1.0.0",
+    "npm-run-all2": "^8.0.4",
+    "pg": "^8.11.0",
+    "rimraf": "^6.0.1",
+    "semantic-release": "^25.0.3",
+    "ts-node": "^10.9.2",
+    "typedoc": "^0.28.17",
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^8.56.0",
+    "vitest": "^4.0.18"
+  }
+}

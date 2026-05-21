@@ -57,11 +57,15 @@ export class PgCursor<T> implements AsyncIterable<T> {
    */
   public map<U>(fn: (value: T) => U): PgCursor<U> {
     const previous = this.mapper;
-    return new PgCursor<U>(this.source, {
-      sql: this.sql,
-      params: this.params,
-      batchSize: this.batchSize,
-    }, (row) => fn(previous(row)));
+    return new PgCursor<U>(
+      this.source,
+      {
+        sql: this.sql,
+        params: this.params,
+        batchSize: this.batchSize,
+      },
+      (row) => fn(previous(row))
+    );
   }
 
   /**

@@ -157,9 +157,7 @@ describe('External session / transaction support', () => {
       .toArray()) as TestUser[];
     expect(users.length).toBe(1);
     const [user] = users;
-    const groupPositions = (
-      user.groupsGibbon as Gibbon
-    ).getPositionsArray();
+    const groupPositions = (user.groupsGibbon as Gibbon).getPositionsArray();
     expect(groupPositions).toContain(GROUP_POSITION_FIXTURES.GI_JOE);
     const permissionPositions = (
       user.permissionsGibbon as Gibbon

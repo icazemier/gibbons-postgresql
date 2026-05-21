@@ -123,16 +123,22 @@ function buildMetadataConditions(
 
   const conditions: string[] = [];
   if (comparator.eq !== undefined) {
-    conditions.push(equalityCondition(col, comparator.eq, params, nextPlaceholder));
+    conditions.push(
+      equalityCondition(col, comparator.eq, params, nextPlaceholder)
+    );
   }
   if (comparator.ne !== undefined) {
-    conditions.push(inequalityCondition(col, comparator.ne, params, nextPlaceholder));
+    conditions.push(
+      inequalityCondition(col, comparator.ne, params, nextPlaceholder)
+    );
   }
   if (comparator.in !== undefined) {
     conditions.push(inCondition(col, comparator.in, params, nextPlaceholder));
   }
   if (comparator.nin !== undefined) {
-    conditions.push(notInCondition(col, comparator.nin, params, nextPlaceholder));
+    conditions.push(
+      notInCondition(col, comparator.nin, params, nextPlaceholder)
+    );
   }
   if (comparator.like !== undefined) {
     const placeholder = nextPlaceholder();
@@ -145,19 +151,29 @@ function buildMetadataConditions(
     conditions.push(`${col} ILIKE ${placeholder}`);
   }
   if (comparator.gt !== undefined) {
-    conditions.push(scalarCondition(col, '>', comparator.gt, params, nextPlaceholder));
+    conditions.push(
+      scalarCondition(col, '>', comparator.gt, params, nextPlaceholder)
+    );
   }
   if (comparator.gte !== undefined) {
-    conditions.push(scalarCondition(col, '>=', comparator.gte, params, nextPlaceholder));
+    conditions.push(
+      scalarCondition(col, '>=', comparator.gte, params, nextPlaceholder)
+    );
   }
   if (comparator.lt !== undefined) {
-    conditions.push(scalarCondition(col, '<', comparator.lt, params, nextPlaceholder));
+    conditions.push(
+      scalarCondition(col, '<', comparator.lt, params, nextPlaceholder)
+    );
   }
   if (comparator.lte !== undefined) {
-    conditions.push(scalarCondition(col, '<=', comparator.lte, params, nextPlaceholder));
+    conditions.push(
+      scalarCondition(col, '<=', comparator.lte, params, nextPlaceholder)
+    );
   }
   if (comparator.isNull !== undefined) {
-    conditions.push(comparator.isNull ? `${col} IS NULL` : `${col} IS NOT NULL`);
+    conditions.push(
+      comparator.isNull ? `${col} IS NULL` : `${col} IS NOT NULL`
+    );
   }
   if (conditions.length === 0) {
     throw new Error(`Empty comparator object for metadata key "${key}"`);

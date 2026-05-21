@@ -11,8 +11,7 @@ import { Pool } from 'pg';
 import { PostgreSqlSeeder, Config } from '../src/index.js';
 
 async function main() {
-  const uri =
-    process.env.PG_URI ?? 'postgresql://localhost:5432/postgres';
+  const uri = process.env.PG_URI ?? 'postgresql://localhost:5432/postgres';
 
   const config: Config = {
     dbName: 'my_custom_db',

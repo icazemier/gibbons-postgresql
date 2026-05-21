@@ -233,10 +233,7 @@ export class GibbonGroup extends GibbonModel {
    * @param groups - Group positions to deallocate
    * @param client - Optional transactional client
    */
-  async deallocate(
-    groups: GibbonLike,
-    client?: PoolClient
-  ): Promise<void> {
+  async deallocate(groups: GibbonLike, client?: PoolClient): Promise<void> {
     const positions = this.ensureGibbon(groups).getPositionsArray();
     if (positions.length === 0) {
       return;

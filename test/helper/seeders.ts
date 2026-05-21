@@ -68,9 +68,7 @@ export const seedPermissionTestFixtures = async (
   pool: Pool,
   config: Config
 ): Promise<void> => {
-  const permissionTable = quoteIdent(
-    config.dbStructure.permission.tableName
-  );
+  const permissionTable = quoteIdent(config.dbStructure.permission.tableName);
   await Promise.all(
     permissionsFixtures.map(
       ({ name, gibbonPermissionPosition, gibbonIsAllocated }) =>
@@ -79,7 +77,11 @@ export const seedPermissionTestFixtures = async (
            SET gibbon_is_allocated = $1,
                metadata = metadata || $2::jsonb
            WHERE gibbon_permission_position = $3`,
-          [gibbonIsAllocated, JSON.stringify({ name }), gibbonPermissionPosition]
+          [
+            gibbonIsAllocated,
+            JSON.stringify({ name }),
+            gibbonPermissionPosition,
+          ]
         )
     )
   );

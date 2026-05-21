@@ -14,7 +14,7 @@ import { PostgreSqlTestServer } from '../test/helper/postgresql-memory-server.js
 import { GibbonsPostgreSql } from './gibbons-postgresql.js';
 import { PostgreSqlSeeder } from './seeder.js';
 import { Config } from './interfaces/index.js';
-import { TestUser, TestGroup } from '../test/interfaces/test-interfaces.js';
+import { TestUser } from '../test/interfaces/test-interfaces.js';
 import { withTransaction } from './utils.js';
 import { quoteIdent } from './sql.js';
 
@@ -120,7 +120,9 @@ describe('Resize: expand and shrink', () => {
     const groupBuf = groupAfter.rows[0].permissions_gibbon;
     expect(groupBuf.length).toBe(4);
     expect(
-      Gibbon.decode(groupBuf).hasAllFromPositions([perm.gibbonPermissionPosition])
+      Gibbon.decode(groupBuf).hasAllFromPositions([
+        perm.gibbonPermissionPosition,
+      ])
     ).toBe(true);
 
     const userAfter = await pool.query<{ permissions_gibbon: Buffer }>(
@@ -130,7 +132,9 @@ describe('Resize: expand and shrink', () => {
     const userBuf = userAfter.rows[0].permissions_gibbon;
     expect(userBuf.length).toBe(4);
     expect(
-      Gibbon.decode(userBuf).hasAllFromPositions([perm.gibbonPermissionPosition])
+      Gibbon.decode(userBuf).hasAllFromPositions([
+        perm.gibbonPermissionPosition,
+      ])
     ).toBe(true);
 
     expect(config.permissionByteLength).toBe(4);
@@ -227,9 +231,9 @@ describe('Resize: expand and shrink', () => {
     );
     expect(groupAfter.rows[0].permissions_gibbon.length).toBe(2);
     expect(
-      Gibbon.decode(
-        groupAfter.rows[0].permissions_gibbon
-      ).hasAllFromPositions([perm.gibbonPermissionPosition])
+      Gibbon.decode(groupAfter.rows[0].permissions_gibbon).hasAllFromPositions([
+        perm.gibbonPermissionPosition,
+      ])
     ).toBe(true);
 
     const userAfter = await pool.query<{ permissions_gibbon: Buffer }>(
@@ -238,9 +242,9 @@ describe('Resize: expand and shrink', () => {
     );
     expect(userAfter.rows[0].permissions_gibbon.length).toBe(2);
     expect(
-      Gibbon.decode(
-        userAfter.rows[0].permissions_gibbon
-      ).hasAllFromPositions([perm.gibbonPermissionPosition])
+      Gibbon.decode(userAfter.rows[0].permissions_gibbon).hasAllFromPositions([
+        perm.gibbonPermissionPosition,
+      ])
     ).toBe(true);
 
     expect(config.permissionByteLength).toBe(2);
@@ -358,9 +362,9 @@ describe('Resize: expand and shrink', () => {
     expect(userAfter.rows[0].permissions_gibbon.length).toBe(4);
     expect(userAfter.rows[0].groups_gibbon.length).toBe(4);
     expect(
-      Gibbon.decode(
-        userAfter.rows[0].permissions_gibbon
-      ).hasAllFromPositions([perm.gibbonPermissionPosition])
+      Gibbon.decode(userAfter.rows[0].permissions_gibbon).hasAllFromPositions([
+        perm.gibbonPermissionPosition,
+      ])
     ).toBe(true);
     expect(
       Gibbon.decode(userAfter.rows[0].groups_gibbon).hasAllFromPositions([

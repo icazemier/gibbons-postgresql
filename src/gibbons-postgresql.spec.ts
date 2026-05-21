@@ -46,7 +46,6 @@ describe('Happy flows', () => {
   let pool: Pool;
   let config: Config;
   let userTable: string;
-  let groupTable: string;
   let permissionTable: string;
 
   beforeAll(async () => {
@@ -54,7 +53,6 @@ describe('Happy flows', () => {
     config = await ConfigLoader.load('gibbons-postgresql-sample');
 
     userTable = quoteIdent(config.dbStructure.user.tableName);
-    groupTable = quoteIdent(config.dbStructure.group.tableName);
     permissionTable = quoteIdent(config.dbStructure.permission.tableName);
 
     adapter = new GibbonsPostgreSql(PostgreSqlTestServer.uri, config);
@@ -218,7 +216,9 @@ describe('Happy flows', () => {
         groupsFixtures[0].permissionsGibbon
       )
     ).toBe(0);
-    expect(group.gibbonGroupPosition).toBe(groupsFixtures[0].gibbonGroupPosition);
+    expect(group.gibbonGroupPosition).toBe(
+      groupsFixtures[0].gibbonGroupPosition
+    );
     expect(group.gibbonIsAllocated).toBe(groupsFixtures[0].gibbonIsAllocated);
   });
 
@@ -308,12 +308,10 @@ describe('Happy flows', () => {
       const permPositions = (
         user.permissionsGibbon as Gibbon
       ).getPositionsArray();
-      const groupPositions = (
-        user.groupsGibbon as Gibbon
-      ).getPositionsArray();
-      expect(
-        permissionPositions.some((p) => permPositions.includes(p))
-      ).toBe(false);
+      const groupPositions = (user.groupsGibbon as Gibbon).getPositionsArray();
+      expect(permissionPositions.some((p) => permPositions.includes(p))).toBe(
+        false
+      );
       expect(groupPositions).toContain(GROUP_POSITION_FIXTURES.GI_JOE);
     });
   });
@@ -442,10 +440,7 @@ describe('Happy flows', () => {
     if (!user) return;
     const valid = adapter.validateUserPermissionsForAnyPermissions(
       user.permissionsGibbon as Gibbon,
-      [
-        PERMISSION_POSITIONS_FIXTURES.USER,
-        PERMISSION_POSITIONS_FIXTURES.ADMIN,
-      ]
+      [PERMISSION_POSITIONS_FIXTURES.USER, PERMISSION_POSITIONS_FIXTURES.ADMIN]
     );
     expect(valid).toBe(true);
   });
@@ -568,12 +563,12 @@ describe('Happy flows', () => {
     expect((userBefore.groupsGibbon as Gibbon).getPositionsArray()).toEqual([
       GROUP_POSITION_FIXTURES.PLANETEERS,
     ]);
-    expect((userBefore.permissionsGibbon as Gibbon).getPositionsArray()).toEqual(
-      [
-        PERMISSION_POSITIONS_FIXTURES.USER,
-        PERMISSION_POSITIONS_FIXTURES.THE_EDGE,
-      ]
-    );
+    expect(
+      (userBefore.permissionsGibbon as Gibbon).getPositionsArray()
+    ).toEqual([
+      PERMISSION_POSITIONS_FIXTURES.USER,
+      PERMISSION_POSITIONS_FIXTURES.THE_EDGE,
+    ]);
 
     await adapter.subscribeUsersToGroups(
       { metadata: { name: { ilike: '%Cooper%' } } },
@@ -637,9 +632,9 @@ describe('Happy flows', () => {
     expect(user.email).toBe('new@user.com');
     expect(user.permissionsGibbon).toBeInstanceOf(Gibbon);
     expect(user.groupsGibbon).toBeInstanceOf(Gibbon);
-    expect(
-      (user.permissionsGibbon as Gibbon).getPositionsArray()
-    ).toHaveLength(0);
+    expect((user.permissionsGibbon as Gibbon).getPositionsArray()).toHaveLength(
+      0
+    );
     expect((user.groupsGibbon as Gibbon).getPositionsArray()).toHaveLength(0);
   });
 
@@ -658,7 +653,9 @@ describe('Happy flows', () => {
       email: 'remove@me.com',
     });
     const countBefore = (
-      await adapter.findUsers({ metadata: { email: 'remove@me.com' } }).toArray()
+      await adapter
+        .findUsers({ metadata: { email: 'remove@me.com' } })
+        .toArray()
     ).length;
     expect(countBefore).toBe(1);
 
@@ -668,7 +665,9 @@ describe('Happy flows', () => {
     expect(removed).toBe(1);
 
     const countAfter = (
-      await adapter.findUsers({ metadata: { email: 'remove@me.com' } }).toArray()
+      await adapter
+        .findUsers({ metadata: { email: 'remove@me.com' } })
+        .toArray()
     ).length;
     expect(countAfter).toBe(0);
   });
@@ -744,9 +743,9 @@ describe('Happy flows', () => {
     const userBefore = await findUserByName('Cooper');
     expect(userBefore).not.toBeNull();
     if (!userBefore) return;
-    expect(
-      (userBefore.groupsGibbon as Gibbon).getPositionsArray()
-    ).toContain(GROUP_POSITION_FIXTURES.TRANSFORMERS);
+    expect((userBefore.groupsGibbon as Gibbon).getPositionsArray()).toContain(
+      GROUP_POSITION_FIXTURES.TRANSFORMERS
+    );
 
     await adapter.unsubscribeUsersFromGroups(
       { metadata: { name: { ilike: '%Cooper%' } } },
@@ -839,10 +838,7 @@ describe('Happy flows', () => {
 
     const fetchedRows = await pool.query<{
       metadata: { name?: string; email?: string };
-    }>(
-      `SELECT metadata FROM ${userTable} WHERE id = $1::uuid`,
-      [user.id]
-    );
+    }>(`SELECT metadata FROM ${userTable} WHERE id = $1::uuid`, [user.id]);
     expect(fetchedRows.rows[0].metadata.name).toBe('Updated Name');
     expect(fetchedRows.rows[0].metadata.email).toBe('updated@example.com');
   });

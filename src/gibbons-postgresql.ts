@@ -176,9 +176,7 @@ export class GibbonsPostgreSql implements IPermissionsResource {
   /**
    * Convenience function to retrieve permission rows by positions.
    */
-  public findPermissions(
-    permissions: GibbonLike
-  ): PgCursor<IGibbonPermission> {
+  public findPermissions(permissions: GibbonLike): PgCursor<IGibbonPermission> {
     return this.gibbonPermission.find(permissions);
   }
 
@@ -441,10 +439,7 @@ export class GibbonsPostgreSql implements IPermissionsResource {
    *
    * @returns Number of removed users
    */
-  async removeUser(
-    filter: UserFilter,
-    client?: PoolClient
-  ): Promise<number> {
+  async removeUser(filter: UserFilter, client?: PoolClient): Promise<number> {
     const where = buildUserWhere(filter);
     return this.gibbonUser.remove(where, client);
   }
@@ -726,4 +721,3 @@ export class GibbonsPostgreSql implements IPermissionsResource {
     });
   }
 }
-

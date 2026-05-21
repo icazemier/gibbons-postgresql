@@ -183,8 +183,6 @@ export class GibbonPermission extends GibbonModel {
        RETURNING gibbon_permission_position, gibbon_is_allocated, metadata`,
       [JSON.stringify(sanitized), permissionPosition]
     );
-    return result.rows.length === 0
-      ? null
-      : rowToPermission(result.rows[0]);
+    return result.rows.length === 0 ? null : rowToPermission(result.rows[0]);
   }
 }

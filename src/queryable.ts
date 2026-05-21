@@ -31,8 +31,9 @@ export function combineClauses(
   right: WhereClause
 ): WhereClause {
   const offset = left.params.length;
-  const renumbered = right.sql.replace(/\$(\d+)/g, (_, n) =>
-    `$${Number(n) + offset}`
+  const renumbered = right.sql.replace(
+    /\$(\d+)/g,
+    (_, n) => `$${Number(n) + offset}`
   );
   return {
     sql: `(${left.sql}) AND (${renumbered})`,

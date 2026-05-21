@@ -6,11 +6,7 @@ import { IPermissionsResource } from '../interfaces/permissions-resource.js';
 import { GibbonModel } from './gibbon-model.js';
 import { PgCursor } from '../cursor.js';
 import { quoteIdent } from '../sql.js';
-import {
-  combineClauses,
-  queryRows,
-  WhereClause,
-} from '../queryable.js';
+import { combineClauses, queryRows, WhereClause } from '../queryable.js';
 import { BYTEA_ANY_BIT_FN } from '../seeder.js';
 
 interface UserRow {
@@ -180,9 +176,9 @@ export class GibbonUser extends GibbonModel {
       [mask]
     );
     for (const row of rows) {
-      const groupsGibbon = Gibbon.decode(row.groups_gibbon).unsetAllFromPositions(
-        positionsToUnset
-      );
+      const groupsGibbon = Gibbon.decode(
+        row.groups_gibbon
+      ).unsetAllFromPositions(positionsToUnset);
       const permissionGibbon =
         await permissionsResource.getPermissionsGibbonForGroups(groupsGibbon);
       await queryable.query(
@@ -351,10 +347,7 @@ export class GibbonUser extends GibbonModel {
       `SELECT id, groups_gibbon FROM ${this.tableName}`
     );
     for (const row of rows) {
-      const resized = GibbonUser.resizeGibbon(
-        row.groups_gibbon,
-        newByteLength
-      );
+      const resized = GibbonUser.resizeGibbon(row.groups_gibbon, newByteLength);
       await queryable.query(
         `UPDATE ${this.tableName}
          SET groups_gibbon = $1
@@ -439,9 +432,9 @@ export class GibbonUser extends GibbonModel {
       combined.params
     );
     for (const row of rows) {
-      const groupsGibbon = Gibbon.decode(row.groups_gibbon).unsetAllFromPositions(
-        positionsToUnset
-      );
+      const groupsGibbon = Gibbon.decode(
+        row.groups_gibbon
+      ).unsetAllFromPositions(positionsToUnset);
       const permissionsGibbon =
         await permissionsResource.getPermissionsGibbonForGroups(groupsGibbon);
       await queryable.query(

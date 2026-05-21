@@ -15,6 +15,30 @@ const BATCH_SIZE = 1000;
 export const BYTEA_ANY_BIT_FN = 'gibbons_bytea_any_bit';
 
 /**
+ * Options for {@link PostgreSqlSeeder.initialize}.
+ */
+export interface InitializeOptions {
+  /**
+   * Optional transactional client. When supplied, all DDL and seed inserts
+   * run on that client and respect its transaction boundary.
+   */
+  client?: PoolClient;
+  /**
+   * When `true`, skip the `CREATE EXTENSION pgcrypto` and `CREATE TABLE`
+   * statements — only install the helper SQL function and seed the slot rows.
+   *
+   * Use this when an external migration tool (Prisma, Drizzle, Flyway, …)
+   * owns the table definitions. The tables must already exist with the
+   * expected columns (`groups_gibbon BYTEA`, `permissions_gibbon BYTEA`,
+   * `metadata JSONB`, plus the position primary key on groups/permissions
+   * and a UUID `id` on users).
+   *
+   * Default: `false`.
+   */
+  skipSchema?: boolean;
+}
+
+/**
  * Prepares a PostgreSQL database with the schema and pre-allocated slot rows
  * required by {@link GibbonsPostgreSql}.
  *
@@ -52,17 +76,13 @@ export class PostgreSqlSeeder {
   }
 
   /**
-   * Creates tables, the helper SQL function and required extensions.
-   *
-   * Uses `CREATE TABLE IF NOT EXISTS` so the call is idempotent.
+   * Installs the helper SQL function used by every "any bit set" predicate.
+   * Always runs, even in {@link InitializeOptions.skipSchema} mode, because
+   * the function is a runtime dependency for queries the adapter issues.
    * @private
    */
-  private async ensureSchema(client?: PoolClient): Promise<void> {
+  private async ensureHelperFunction(client?: PoolClient): Promise<void> {
     const queryable = pickQueryable(this.pool, client);
-    const { user, group, permission } = this.config.dbStructure;
-
-    await queryable.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
-
     await queryable.query(`
       CREATE OR REPLACE FUNCTION ${BYTEA_ANY_BIT_FN}(a BYTEA, b BYTEA)
       RETURNS BOOLEAN AS $$
@@ -80,6 +100,21 @@ export class PostgreSqlSeeder {
       END;
       $$ LANGUAGE plpgsql IMMUTABLE
     `);
+  }
+
+  /**
+   * Creates the `pgcrypto` extension and the three managed tables.
+   *
+   * Uses `CREATE TABLE IF NOT EXISTS` so the call is idempotent. Skipped when
+   * {@link InitializeOptions.skipSchema} is set — useful when an external
+   * migration tool such as Prisma already owns the table definitions.
+   * @private
+   */
+  private async ensureTables(client?: PoolClient): Promise<void> {
+    const queryable = pickQueryable(this.pool, client);
+    const { user, group, permission } = this.config.dbStructure;
+
+    await queryable.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
 
     await queryable.query(`
       CREATE TABLE IF NOT EXISTS ${quoteIdent(user.tableName)} (
@@ -168,11 +203,20 @@ export class PostgreSqlSeeder {
   }
 
   /**
-   * Initialize: ensure schema/helper function exist and populate groups + permissions.
+   * Initialize: ensure schema, helper function and pre-populated slot rows exist.
    * Safe to call multiple times — existing data is never overwritten.
+   *
+   * When {@link InitializeOptions.skipSchema} is `true`, the `CREATE EXTENSION`
+   * and `CREATE TABLE` statements are skipped — only the helper SQL function
+   * is installed and the slot rows are inserted. Use this when another tool
+   * (Prisma, Drizzle, Flyway, …) owns the table definitions.
    */
-  async initialize(client?: PoolClient): Promise<void> {
-    await this.ensureSchema(client);
+  async initialize(options: InitializeOptions = {}): Promise<void> {
+    const { client, skipSchema = false } = options;
+    await this.ensureHelperFunction(client);
+    if (!skipSchema) {
+      await this.ensureTables(client);
+    }
     await Promise.all([
       this.populateGroups(client),
       this.populatePermissions(client),
@@ -252,7 +296,8 @@ export class PostgreSqlSeeder {
    * already exists; `initialize()` is idempotent and safe to call repeatedly.
    */
   async populateGroupsAndPermissions(client?: PoolClient): Promise<void> {
-    await this.ensureSchema(client);
+    await this.ensureHelperFunction(client);
+    await this.ensureTables(client);
     const queryable = pickQueryable(this.pool, client);
     const groupTable = quoteIdent(this.config.dbStructure.group.tableName);
     const permissionTable = quoteIdent(

@@ -30,10 +30,22 @@ void yargs(hideBin(process.argv))
             description: 'Point to custom/own config file',
             nargs: 1,
           },
+          'skip-schema': {
+            demandOption: false,
+            alias: 's',
+            type: 'boolean',
+            default: false,
+            description:
+              'Skip CREATE EXTENSION + CREATE TABLE — only install the helper SQL function and seed slot rows. Use when another migration tool (Prisma, Drizzle, Flyway) owns the table definitions.',
+          },
         })
         .example(
           '$0 init --uri=postgresql://localhost:5432/mydb --config=./someconfig.json',
           'Populates groups and permissions in PostgreSQL for given URI specified by a custom config file'
+        )
+        .example(
+          '$0 init --uri=postgresql://localhost:5432/mydb --skip-schema',
+          'Only seed slot rows (no DDL) — assumes Prisma/Drizzle/etc. already migrated the tables'
         );
     },
     async (argv) => {

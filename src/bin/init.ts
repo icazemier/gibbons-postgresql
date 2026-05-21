@@ -10,6 +10,12 @@ export interface InitCommandArgs {
   uri: string;
   /** Optional path to custom configuration file */
   config?: string;
+  /**
+   * When true, skip `CREATE EXTENSION` + `CREATE TABLE` and only install the
+   * helper SQL function plus seed the slot rows. Use when another migration
+   * tool owns the table definitions.
+   */
+  'skip-schema'?: boolean;
 }
 
 /**
@@ -22,11 +28,12 @@ export interface InitCommandArgs {
  */
 export const init = async (argv: InitCommandArgs): Promise<void> => {
   const { uri, config: configFile } = argv;
+  const skipSchema = argv['skip-schema'] === true;
   const pool = new Pool({ connectionString: uri });
   try {
     const config = await ConfigLoader.load('gibbons-postgresql', configFile);
     const seeder = new PostgreSqlSeeder(pool, config);
-    await seeder.initialize();
+    await seeder.initialize({ skipSchema });
   } finally {
     await pool.end();
   }

@@ -210,6 +210,82 @@ interface UserFilter {
 
 Config is loaded via [cosmiconfig](https://github.com/davidtheclark/cosmiconfig), so `.gibbons-postgresqlrc.json`, `.yaml`, or a `gibbons-postgresql` key in `package.json` all work.
 
+## Using with Prisma (or any other migration tool)
+
+The adapter coexists with Prisma, Drizzle, Flyway, etc. There are three patterns:
+
+### Pattern 1 — Shared user table (most common)
+
+Prisma owns the `User` model. Add three columns the gibbons adapter expects, plus dedicated tables for groups and permissions:
+
+```prisma
+model User {
+  id                String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupsGibbon      Bytes  @map("groups_gibbon")
+  permissionsGibbon Bytes  @map("permissions_gibbon")
+  metadata          Json   @default("{}")
+  // …your own fields
+  @@map("users")
+}
+
+model Group {
+  gibbonGroupPosition Int     @id @map("gibbon_group_position")
+  gibbonIsAllocated   Boolean @default(false) @map("gibbon_is_allocated")
+  permissionsGibbon   Bytes   @map("permissions_gibbon")
+  metadata            Json    @default("{}")
+  @@map("groups")
+}
+
+model Permission {
+  gibbonPermissionPosition Int     @id @map("gibbon_permission_position")
+  gibbonIsAllocated        Boolean @default(false) @map("gibbon_is_allocated")
+  metadata                 Json    @default("{}")
+  @@map("permissions")
+}
+```
+
+Run your usual Prisma migrations, then seed the slot rows with `--skip-schema` so the gibbons CLI doesn't try to re-create the tables:
+
+```bash
+npx prisma migrate dev
+npx gibbons-postgresql init --uri=$DATABASE_URL --skip-schema
+```
+
+Programmatically:
+
+```typescript
+const seeder = new PostgreSqlSeeder(pool, config);
+await seeder.initialize({ skipSchema: true });
+```
+
+A full runnable example lives in [`examples/prisma/`](./examples/prisma/).
+
+### Pattern 2 — Separate Postgres schema
+
+Put the gibbons tables in their own Postgres schema and let Prisma's `schemas` exclude it. Table names accept a `schema.table` form:
+
+```json
+{
+  "dbStructure": {
+    "user": { "tableName": "gibbons.users" },
+    "group": { "tableName": "gibbons.groups" },
+    "permission": { "tableName": "gibbons.permissions" }
+  }
+}
+```
+
+The seeder will quote each side independently (`"gibbons"."users"`). Create the schema yourself (`CREATE SCHEMA IF NOT EXISTS gibbons`) before running `init`.
+
+### Pattern 3 — Two separate user tables
+
+Keep Prisma's `User` for auth/profile data and give gibbons its own user table joined by a shared id field. Most decoupled, but you do the joining yourself.
+
+### Friction points
+
+- **Two pools, one database**. Prisma uses its own internal pool; pass a separate `pg.Pool` to gibbons. The overhead is a handful of connections.
+- **No shared transactions across libraries**. Prisma's `$transaction` gives you a Prisma client; gibbons' `withTransaction` gives you a `pg.PoolClient`. They commit independently — if you need atomicity across both, you're looking at 2PC or eventual consistency.
+- **Filter scope**. `UserFilter` filters by `id` and the gibbons-managed `metadata` JSONB column. For Prisma-owned columns (your own `email`, `createdAt`, etc.) use Prisma to fetch the user, then pass `{ id: user.id }` to gibbons.
+
 ## How it works under the hood
 
 - Group memberships and permissions are stored as compact `BYTEA` bitmasks.

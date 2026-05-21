@@ -1,0 +1,49 @@
+// Example schema.prisma showing how to declare the columns
+// @icazemier/gibbons-postgresql needs on the user table, plus the
+// dedicated tables for the bitwise group and permission slots.
+//
+// Workflow:
+//   1. Run `prisma migrate dev` so Prisma owns the schema.
+//   2. Run `npx gibbons-postgresql init --uri=... --skip-schema`
+//      so the gibbons seeder only installs the helper SQL function
+//      and inserts the slot rows.
+//
+// All gibbons-managed metadata (names, descriptions, etc.) lives in
+// the `metadata` JSONB columns — Prisma can read them with
+// `prisma.user.findUnique({ where: { id } })` and treat them as
+// `Record<string, unknown>`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupsGibbon      Bytes  @map("groups_gibbon")
+  permissionsGibbon Bytes  @map("permissions_gibbon")
+  metadata          Json   @default("{}")
+
+  @@map("users")
+}
+
+model Group {
+  gibbonGroupPosition Int     @id @map("gibbon_group_position")
+  gibbonIsAllocated   Boolean @default(false) @map("gibbon_is_allocated")
+  permissionsGibbon   Bytes   @map("permissions_gibbon")
+  metadata            Json    @default("{}")
+
+  @@map("groups")
+}
+
+model Permission {
+  gibbonPermissionPosition Int     @id @map("gibbon_permission_position")
+  gibbonIsAllocated        Boolean @default(false) @map("gibbon_is_allocated")
+  metadata                 Json    @default("{}")
+
+  @@map("permissions")
+}

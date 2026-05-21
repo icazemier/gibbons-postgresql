@@ -5,17 +5,49 @@ import {
   UserFilter,
 } from './interfaces/user-filter.js';
 
+const SIMPLE_IDENT = /^[A-Za-z0-9_]+$/;
+
 /**
  * Safely quote a PostgreSQL identifier (table, column, schema name).
- * Doubles embedded quotes so they survive the surrounding quoting.
+ *
+ * Accepts either a single identifier (`users`) or a schema-qualified pair
+ * (`gibbons.users`). For qualified names, each side is quoted independently
+ * so the result is `"gibbons"."users"`. Useful for keeping the gibbons
+ * tables in a dedicated schema alongside another tool (e.g. Prisma).
+ *
+ * @throws Error when the identifier contains characters outside
+ *   `[A-Za-z0-9_]` or has more than one dot.
  */
 export function quoteIdent(identifier: string): string {
-  if (!/^[A-Za-z0-9_]+$/.test(identifier)) {
+  const parts = identifier.split('.');
+  if (parts.length > 2 || !parts.every((p) => SIMPLE_IDENT.test(p))) {
     throw new Error(
-      `Invalid SQL identifier: "${identifier}". Only alphanumeric and underscore characters are allowed.`
+      `Invalid SQL identifier: "${identifier}". Expected "table" or "schema.table" with only alphanumeric and underscore characters.`
     );
   }
-  return `"${identifier}"`;
+  return parts.map((p) => `"${p}"`).join('.');
+}
+
+/**
+ * Split a `schema.table` identifier into its parts. Returns the table name
+ * with `schema: undefined` when no schema prefix is present.
+ *
+ * Validates each part the same way as {@link quoteIdent}.
+ */
+export function splitIdent(identifier: string): {
+  schema?: string;
+  table: string;
+} {
+  const parts = identifier.split('.');
+  if (parts.length > 2 || !parts.every((p) => SIMPLE_IDENT.test(p))) {
+    throw new Error(
+      `Invalid SQL identifier: "${identifier}". Expected "table" or "schema.table" with only alphanumeric and underscore characters.`
+    );
+  }
+  if (parts.length === 2) {
+    return { schema: parts[0], table: parts[1] };
+  }
+  return { table: parts[0] };
 }
 
 /**

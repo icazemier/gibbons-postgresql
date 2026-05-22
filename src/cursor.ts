@@ -100,24 +100,28 @@ export class PgCursor<T> implements AsyncIterable<T> {
   /**
    * Closes the cursor and releases the pooled client if owned.
    * Safe to call multiple times.
+   *
+   * Throws if `pg-cursor.close()` fails. The borrowed client is *always*
+   * released regardless, because the release happens in a `finally` block.
+   * Callers wrapping `close()` inside a `catch` should use `AggregateError`
+   * (or equivalent) to preserve both the original error and any close failure.
    */
   public async close(): Promise<void> {
     if (this.closed) {
       return;
     }
     this.closed = true;
-    if (this.cursor) {
-      try {
+    try {
+      if (this.cursor) {
         await this.cursor.close();
-      } catch {
-        // Swallow close errors so they don't mask the original error
       }
+    } finally {
       this.cursor = null;
+      if (this.client && this.ownsClient) {
+        this.client.release();
+      }
+      this.client = null;
     }
-    if (this.client && this.ownsClient) {
-      this.client.release();
-    }
-    this.client = null;
   }
 
   public [Symbol.asyncIterator](): AsyncIterator<T> {
@@ -149,6 +153,7 @@ export class PgCursor<T> implements AsyncIterable<T> {
           return;
         }
         c.read(this.batchSize, (err, rows) => {
+          /* v8 ignore next 4 — pg-cursor only errors here on a torn connection */
           if (err) {
             reject(err);
             return;
@@ -177,7 +182,15 @@ export class PgCursor<T> implements AsyncIterable<T> {
           const row = buffer.shift();
           return { value: this.mapper(row as QueryResultRow), done: false };
         } catch (err) {
-          await this.close();
+          try {
+            await this.close();
+          } catch (closeErr) {
+            throw new AggregateError(
+              [err, closeErr],
+              'Cursor iteration failed and close() also failed',
+              { cause: closeErr }
+            );
+          }
           throw err;
         }
       },

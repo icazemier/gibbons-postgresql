@@ -66,8 +66,27 @@ export class GibbonsPostgreSql implements IPermissionsResource {
    *
    * @param poolOrUri - A PostgreSQL connection URI **or** an existing `pg.Pool`.
    *   When a `Pool` is provided the adapter re-uses it (no extra pool is created),
-   *   so clients started from that pool work with all facade methods.
+   *   so clients borrowed from that pool work with all facade methods.
    * @param config - Configuration containing database structure and byte lengths
+   *
+   * @example Using a URI (adapter creates its own pool)
+   * ```typescript
+   * const gibbonsDb = new GibbonsPostgreSql('postgresql://localhost:5432/mydb', config);
+   * await gibbonsDb.initialize();
+   * ```
+   *
+   * @example Using an existing Pool (shared connection)
+   * ```typescript
+   * const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+   * const gibbonsDb = new GibbonsPostgreSql(pool, config);
+   * await gibbonsDb.initialize();
+   *
+   * // Clients from `pool` work directly with withTransaction
+   * await withTransaction(pool, async (client) => {
+   *   await gibbonsDb.allocatePermission({ name: 'edit' }, client);
+   *   await gibbonsDb.allocateGroup({ name: 'admins' }, client);
+   * });
+   * ```
    */
   constructor(
     poolOrUri: Pool | string,
@@ -80,10 +99,18 @@ export class GibbonsPostgreSql implements IPermissionsResource {
    * Returns the underlying `pg.Pool` used by this instance.
    *
    * When a `Pool` was injected via the constructor this returns the same
-   * instance, so clients you connect from it work seamlessly with all facade
-   * methods (e.g. for `withTransaction`).
+   * instance, so clients borrowed from it work seamlessly with all facade
+   * methods (e.g. inside `withTransaction`).
    *
    * @throws Error if called before {@link initialize}
+   *
+   * @example
+   * ```typescript
+   * const pool = gibbonsDb.getPool();
+   * await withTransaction(pool, async (client) => {
+   *   await gibbonsDb.allocatePermission({ name: 'edit' }, client);
+   * });
+   * ```
    */
   public getPool(): Pool {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -157,8 +184,19 @@ export class GibbonsPostgreSql implements IPermissionsResource {
   }
 
   /**
-   * Fetches aggregated permissions from groups
-   * (Useful to store at the user itself for fast access)
+   * Fetches aggregated permissions from groups.
+   * Useful to store at the user itself for fast permission checks.
+   *
+   * @param groups - Group positions or Gibbon representing groups
+   * @returns A Gibbon with all permissions merged from the specified groups
+   *
+   * @example
+   * ```typescript
+   * // Get all permissions from admin and editor groups
+   * const permissionsGibbon = await gibbonsDb.getPermissionsGibbonForGroups([1, 2]);
+   * const permissionPositions = permissionsGibbon.getPositionsArray();
+   * console.log(permissionPositions); // e.g., [1, 2, 5, 6, 10]
+   * ```
    */
   public async getPermissionsGibbonForGroups(
     groups: GibbonLike
@@ -168,6 +206,17 @@ export class GibbonsPostgreSql implements IPermissionsResource {
 
   /**
    * Convenience function to retrieve group rows by positions.
+   *
+   * @param groups - Group positions to query for
+   * @returns A streaming cursor of matching group rows
+   *
+   * @example
+   * ```typescript
+   * const cursor = gibbonsDb.findGroups([1, 2, 3]);
+   * for await (const group of cursor) {
+   *   console.log(group.name, group.permissionsGibbon);
+   * }
+   * ```
    */
   public findGroups(groups: GibbonLike): PgCursor<IGibbonGroup> {
     return this.gibbonGroup.find(groups);
@@ -175,6 +224,17 @@ export class GibbonsPostgreSql implements IPermissionsResource {
 
   /**
    * Convenience function to retrieve permission rows by positions.
+   *
+   * @param permissions - Permission positions to query for
+   * @returns A streaming cursor of matching permission rows
+   *
+   * @example
+   * ```typescript
+   * const cursor = gibbonsDb.findPermissions([5, 6, 7]);
+   * for await (const perm of cursor) {
+   *   console.log(perm.name, perm.gibbonPermissionPosition);
+   * }
+   * ```
    */
   public findPermissions(permissions: GibbonLike): PgCursor<IGibbonPermission> {
     return this.gibbonPermission.find(permissions);
@@ -183,8 +243,18 @@ export class GibbonsPostgreSql implements IPermissionsResource {
   /**
    * Find allocated groups where permissions are subscribed.
    *
-   * @param permissions Permissions to query for
-   * @param allocated Match for allocated (default) or non-allocated
+   * @param permissions - Permission positions to query for
+   * @param allocated - Match for allocated (default) or non-allocated groups
+   * @returns A streaming cursor of matching group rows
+   *
+   * @example
+   * ```typescript
+   * // Find all groups that have edit or delete permissions
+   * const cursor = gibbonsDb.findGroupsByPermissions([5, 6]);
+   * for await (const group of cursor) {
+   *   console.log(`Group ${group.name} has edit/delete permissions`);
+   * }
+   * ```
    */
   public findGroupsByPermissions(
     permissions: GibbonLike,
@@ -195,6 +265,16 @@ export class GibbonsPostgreSql implements IPermissionsResource {
 
   /**
    * Find users where permissions are subscribed.
+   *
+   * @param permissions - Permission positions to query for
+   * @returns A streaming cursor of matching user rows
+   *
+   * @example
+   * ```typescript
+   * // Find all users with delete permission
+   * const cursor = gibbonsDb.findUsersByPermissions([6]);
+   * const usersWithDelete = await cursor.toArray();
+   * ```
    */
   public findUsersByPermissions(
     permissions: GibbonLike
@@ -204,6 +284,18 @@ export class GibbonsPostgreSql implements IPermissionsResource {
 
   /**
    * Find users where groups are subscribed.
+   *
+   * @param groups - Group positions to query for
+   * @returns A streaming cursor of matching user rows
+   *
+   * @example
+   * ```typescript
+   * // Find all users in admin or moderator groups
+   * const cursor = gibbonsDb.findUsersByGroups([1, 2]);
+   * for await (const user of cursor) {
+   *   console.log(`${user.name} is admin or moderator`);
+   * }
+   * ```
    */
   public findUsersByGroups(groups: GibbonLike): PgCursor<IGibbonUser> {
     return this.gibbonUser.findByGroups(groups);

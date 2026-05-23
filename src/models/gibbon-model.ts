@@ -148,4 +148,15 @@ export abstract class GibbonModel {
   protected runner(client?: PoolClient): Queryable {
     return pickQueryable(this.pool, client);
   }
+
+  /**
+   * Returns the cursor source for a `PgCursor`: uses the caller-supplied
+   * transactional client when present so the cursor shares the transaction,
+   * otherwise borrows a fresh client from the pool.
+   */
+  protected cursorSource(
+    client?: PoolClient
+  ): { pool: Pool } | { client: PoolClient } {
+    return client ? { client } : { pool: this.pool };
+  }
 }

@@ -201,17 +201,20 @@ export class GibbonGroup extends GibbonModel {
     }
 
     const queryable = this.runner(client);
-    const rows = await queryRows<{
+    const cursor = new PgCursor<{
       gibbon_group_position: number;
       permissions_gibbon: Buffer;
     }>(
-      queryable,
-      `SELECT gibbon_group_position, permissions_gibbon FROM ${this.tableName}
-       WHERE ${BYTEA_ANY_BIT_FN}(permissions_gibbon, $1) = TRUE`,
-      [mask]
+      this.cursorSource(client),
+      {
+        sql: `SELECT gibbon_group_position, permissions_gibbon FROM ${this.tableName}
+              WHERE ${BYTEA_ANY_BIT_FN}(permissions_gibbon, $1) = TRUE`,
+        params: [mask],
+      },
+      (row) =>
+        row as { gibbon_group_position: number; permissions_gibbon: Buffer }
     );
-
-    for (const row of rows) {
+    for await (const row of cursor) {
       const updated = Gibbon.decode(row.permissions_gibbon)
         .unsetAllFromPositions(positionsToUnset)
         .toBuffer();
@@ -268,17 +271,20 @@ export class GibbonGroup extends GibbonModel {
       return;
     }
     const queryable = this.runner(client);
-    const rows = await queryRows<{
+    const cursor = new PgCursor<{
       gibbon_group_position: number;
       permissions_gibbon: Buffer;
     }>(
-      queryable,
-      `SELECT gibbon_group_position, permissions_gibbon FROM ${this.tableName}
-       WHERE gibbon_group_position = ANY($1::int[])`,
-      [positions]
+      this.cursorSource(client),
+      {
+        sql: `SELECT gibbon_group_position, permissions_gibbon FROM ${this.tableName}
+              WHERE gibbon_group_position = ANY($1::int[])`,
+        params: [positions],
+      },
+      (row) =>
+        row as { gibbon_group_position: number; permissions_gibbon: Buffer }
     );
-
-    for (const row of rows) {
+    for await (const row of cursor) {
       const merged = Gibbon.decode(row.permissions_gibbon)
         .mergeWithGibbon(permissions)
         .toBuffer();
@@ -347,14 +353,18 @@ export class GibbonGroup extends GibbonModel {
     client?: PoolClient
   ): Promise<void> {
     const queryable = this.runner(client);
-    const rows = await queryRows<{
+    const cursor = new PgCursor<{
       gibbon_group_position: number;
       permissions_gibbon: Buffer;
     }>(
-      queryable,
-      `SELECT gibbon_group_position, permissions_gibbon FROM ${this.tableName}`
+      this.cursorSource(client),
+      {
+        sql: `SELECT gibbon_group_position, permissions_gibbon FROM ${this.tableName}`,
+      },
+      (row) =>
+        row as { gibbon_group_position: number; permissions_gibbon: Buffer }
     );
-    for (const row of rows) {
+    for await (const row of cursor) {
       const resized = GibbonGroup.resizeGibbon(
         row.permissions_gibbon,
         newByteLength
@@ -389,17 +399,20 @@ export class GibbonGroup extends GibbonModel {
       return;
     }
     const queryable = this.runner(client);
-    const rows = await queryRows<{
+    const cursor = new PgCursor<{
       gibbon_group_position: number;
       permissions_gibbon: Buffer;
     }>(
-      queryable,
-      `SELECT gibbon_group_position, permissions_gibbon FROM ${this.tableName}
-       WHERE gibbon_group_position = ANY($1::int[])`,
-      [positions]
+      this.cursorSource(client),
+      {
+        sql: `SELECT gibbon_group_position, permissions_gibbon FROM ${this.tableName}
+              WHERE gibbon_group_position = ANY($1::int[])`,
+        params: [positions],
+      },
+      (row) =>
+        row as { gibbon_group_position: number; permissions_gibbon: Buffer }
     );
-
-    for (const row of rows) {
+    for await (const row of cursor) {
       const updated = Gibbon.decode(row.permissions_gibbon)
         .unsetAllFromPositions(permissionPositions)
         .toBuffer();

@@ -1,0 +1,12 @@
+{
+  "exclude": ["node_modules/", "build/", "docs/"],
+  "imports": {
+    "pg": "npm:pg",
+    "pg-cursor": "npm:pg-cursor",
+    "@icazemier/gibbons": "npm:@icazemier/gibbons",
+    "cosmiconfig": "npm:cosmiconfig",
+    "cosmiconfig/dist/types.js": "npm:cosmiconfig/dist/types.js",
+    "yargs": "npm:yargs",
+    "yargs/helpers": "npm:yargs/helpers"
+  }
+}

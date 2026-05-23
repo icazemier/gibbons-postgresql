@@ -12,9 +12,30 @@ npm install @icazemier/gibbons-postgresql pg
 
 `pg` is a peer dependency — you install the driver alongside this library.
 
+## Runtime Compatibility
+
+| Runtime | Support | Install |
+|---------|---------|---------|
+| Node.js 20+ | ✅ Native | `npm install @icazemier/gibbons-postgresql pg` |
+| Bun | ✅ Native | `bun add @icazemier/gibbons-postgresql pg` |
+| Deno | ✅ via `npm:` | See below |
+
+### Deno
+
+```typescript
+import { GibbonsPostgreSql, ConfigLoader } from "npm:@icazemier/gibbons-postgresql";
+import { Pool } from "npm:pg";
+```
+
+Run with the required permissions:
+
+```bash
+deno run --allow-env --allow-net --allow-read --allow-sys your-script.ts
+```
+
 ## Requirements
 
-- **Node.js** 20 or newer
+- **Node.js** 20 or newer (Bun and Deno are also supported — see above)
 - **PostgreSQL** 14 or newer (any community-supported release works)
 
 The adapter only uses portable SQL — `JSONB`, `INSERT ... ON CONFLICT`, `SELECT ... FOR UPDATE SKIP LOCKED`, the `BYTEA` `get_byte`/`octet_length` builtins, and a one-line plpgsql helper function — so technically anything from PostgreSQL 9.5 onward runs it. PostgreSQL 14+ is the recommended floor because earlier releases are out of community support.

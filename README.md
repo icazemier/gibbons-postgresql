@@ -172,7 +172,6 @@ Every public method accepts an optional `client` parameter. When omitted, multi-
 | `getPool()` | Get the underlying `pg.Pool` |
 | `getPermissionsGibbonForGroups(groups)` | Aggregate permissions from groups |
 | `withTransaction(pool, fn)` | Run a callback inside a PostgreSQL transaction |
-| `buildUserWhere(filter)` | Compile a `UserFilter` to a `WhereClause` for advanced usage |
 
 ## User filters
 

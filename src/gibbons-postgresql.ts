@@ -530,8 +530,14 @@ export class GibbonsPostgreSql implements IPermissionsResource {
    * Remove user(s) matching the given filter.
    *
    * @returns Number of removed users
+   * @throws Error when filter is empty — requires at least `id` or `metadata` to prevent accidental mass deletion
    */
   async removeUser(filter: UserFilter, client?: PoolClient): Promise<number> {
+    if (filter.id === undefined && filter.metadata === undefined) {
+      throw new Error(
+        'removeUser requires at least one filter condition (id or metadata) to prevent accidental mass deletion'
+      );
+    }
     const where = buildUserWhere(filter);
     return this.gibbonUser.remove(where, client);
   }

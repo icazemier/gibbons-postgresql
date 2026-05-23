@@ -27,15 +27,13 @@ export class ConfigLoader {
   ): Promise<Config> {
     const explorer = cosmiconfig(module || 'gibbons-postgresql');
 
-    if (filepath) {
-      const resolved = path.resolve(filepath);
-      if (resolved.includes('\0')) {
-        throw new Error('Invalid filepath: null bytes are not allowed');
-      }
+    const resolved = filepath ? path.resolve(filepath) : undefined;
+    if (resolved?.includes('\0')) {
+      throw new Error('Invalid filepath: null bytes are not allowed');
     }
 
     const configResult = (
-      filepath ? await explorer.load(filepath) : await explorer.search()
+      resolved ? await explorer.load(resolved) : await explorer.search()
     ) as CosmiconfigResult;
 
     if (!configResult?.config) {

@@ -86,6 +86,12 @@ describe('GibbonModel.ensureGibbon', () => {
     expect(() => m.ensureGibbon([1.5])).toThrow(/positive integer/);
   });
 
+  it('throws when a position exceeds byteLength * 8', () => {
+    const m = new TestModel(4); // max = 32
+    expect(() => m.ensureGibbon([33])).toThrow(/exceeds capacity/);
+    expect(() => m.ensureGibbon([32])).not.toThrow();
+  });
+
   it('accepts a Buffer', () => {
     const m = new TestModel(2);
     const buf = Gibbon.create(2).setPosition(5).toBuffer();
@@ -121,6 +127,20 @@ describe('GibbonModel.sanitizeData', () => {
       email: 'a@b.c',
     });
     expect(out).toEqual({ name: 'Alice', email: 'a@b.c' });
+  });
+
+  it('strips prototype pollution keys', () => {
+    const m = new TestModel();
+    const out = m.sanitize({
+      __proto__: { isAdmin: true },
+      constructor: 'bad',
+      prototype: 'bad',
+      name: 'safe',
+    });
+    expect(out).toEqual({ name: 'safe' });
+    expect(out).not.toHaveProperty('__proto__');
+    expect(out).not.toHaveProperty('constructor');
+    expect(out).not.toHaveProperty('prototype');
   });
 
   it('keeps all non-managed keys verbatim', () => {

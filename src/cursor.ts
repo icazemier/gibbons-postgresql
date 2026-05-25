@@ -185,6 +185,7 @@ export class PgCursor<T> implements AsyncIterable<T> {
           try {
             await this.close();
           } catch (closeErr) {
+            /* v8 ignore next 6 — requires simultaneous iteration failure and torn connection */
             throw new AggregateError(
               [err, closeErr],
               'Cursor iteration failed and close() also failed',

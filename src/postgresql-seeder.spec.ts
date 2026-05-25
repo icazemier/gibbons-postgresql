@@ -114,4 +114,17 @@ describe('PostgreSqlSeeder', () => {
       'Called populateGroupsAndPermissions, but permissions and groups seem to be populated already'
     );
   });
+
+  it('seedRange — throws RangeError on invalid range params', async () => {
+    await expect(seeder.seedRange('group', 0, 5)).rejects.toThrow(RangeError);
+    await expect(seeder.seedRange('group', -1, 5)).rejects.toThrow(RangeError);
+    await expect(seeder.seedRange('group', 5, 4)).rejects.toThrow(RangeError);
+    await expect(seeder.seedRange('group', 1.5, 5)).rejects.toThrow(RangeError);
+  });
+
+  it('emptyBuffer — returns a zero-filled buffer of the given length', () => {
+    const buf = PostgreSqlSeeder.emptyBuffer(8);
+    expect(buf.length).toBe(8);
+    expect(buf.every((b) => b === 0)).toBe(true);
+  });
 });

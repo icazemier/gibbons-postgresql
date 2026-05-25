@@ -151,8 +151,12 @@ export abstract class GibbonModel {
   }
 
   /**
-   * Resolve the right queryable for the call: the supplied transactional
+   * Returns the queryable for a model method call: the supplied transactional
    * client when present, otherwise the pool.
+   *
+   * Protected extension point — subclass model methods should use this instead
+   * of accessing `this.pool` directly so they automatically participate in
+   * caller-supplied transactions.
    */
   protected runner(client?: PoolClient): Queryable {
     return pickQueryable(this.pool, client);
@@ -162,6 +166,10 @@ export abstract class GibbonModel {
    * Returns the cursor source for a `PgCursor`: uses the caller-supplied
    * transactional client when present so the cursor shares the transaction,
    * otherwise borrows a fresh client from the pool.
+   *
+   * Protected extension point — use this when constructing a `PgCursor` inside
+   * a subclass method so the cursor automatically participates in any
+   * caller-supplied transaction.
    */
   protected cursorSource(
     client?: PoolClient

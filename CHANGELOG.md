@@ -1,3 +1,9 @@
+## [1.0.0-beta.5](https://github.com/icazemier/gibbons-postgresql/compare/v1.0.0-beta.4...v1.0.0-beta.5) (2026-05-25)
+
+### 🐛 Bug Fixes
+
+* **jsr:** add version constraints to all npm specifiers in deno.json ([f66be51](https://github.com/icazemier/gibbons-postgresql/commit/f66be51e4850323df53b9c90c4a4f55b48191370))
+
 ## [1.0.0-beta.4](https://github.com/icazemier/gibbons-postgresql/compare/v1.0.0-beta.3...v1.0.0-beta.4) (2026-05-25)
 
 ### 🐛 Bug Fixes

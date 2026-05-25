@@ -278,7 +278,7 @@ const seeder = new PostgreSqlSeeder(pool, config);
 await seeder.initialize({ skipSchema: true });
 ```
 
-A full runnable example lives in [`examples/prisma/`](./examples/prisma/).
+A full runnable example lives in [`examples/prisma/`](https://github.com/icazemier/gibbons-postgresql/tree/main/examples/prisma/).
 
 ### Pattern 2 — Separate Postgres schema
 

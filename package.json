@@ -1,7 +1,7 @@
 {
   "name": "@icazemier/gibbons-postgresql",
   "private": false,
-  "version": "1.0.0-beta.5",
+  "version": "1.0.0",
   "type": "module",
   "description": "Gibbons is a Node.js module which helps in managing user groups and user permissions with `bitwise` efficiency.",
   "contributors": [

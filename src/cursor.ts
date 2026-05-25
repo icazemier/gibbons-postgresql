@@ -10,7 +10,7 @@ const DEFAULT_BATCH_SIZE = 100;
  * when consumption finishes) or a pre-bound client (the cursor uses it but does
  * NOT release it — the caller owns the lifecycle, e.g. inside a transaction).
  */
-type CursorSource = { pool: Pool } | { client: PoolClient };
+export type CursorSource = { pool: Pool } | { client: PoolClient };
 
 export interface PgCursorOptions {
   sql: string;
@@ -185,6 +185,7 @@ export class PgCursor<T> implements AsyncIterable<T> {
           try {
             await this.close();
           } catch (closeErr) {
+            /* v8 ignore next 6 — requires simultaneous iteration failure and torn connection */
             throw new AggregateError(
               [err, closeErr],
               'Cursor iteration failed and close() also failed',

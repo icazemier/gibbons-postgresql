@@ -1,8 +1,14 @@
 import { Buffer } from 'node:buffer';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { Gibbon } from '@icazemier/gibbons';
 import type { Pool } from 'pg';
 import { GibbonModel } from './gibbon-model.js';
+import { GibbonUser } from './gibbon-user.js';
+import { GibbonGroup } from './gibbon-group.js';
+import { GibbonPermission } from './gibbon-permission.js';
+import type { Config } from '../interfaces/index.js';
+import type { IPermissionsResource } from '../interfaces/permissions-resource.js';
+import type { WhereClause } from '../queryable.js';
 
 /**
  * Minimal concrete subclass to access protected helpers. Pure unit tests —
@@ -86,6 +92,12 @@ describe('GibbonModel.ensureGibbon', () => {
     expect(() => m.ensureGibbon([1.5])).toThrow(/positive integer/);
   });
 
+  it('throws when a position exceeds byteLength * 8', () => {
+    const m = new TestModel(4); // max = 32
+    expect(() => m.ensureGibbon([33])).toThrow(/exceeds capacity/);
+    expect(() => m.ensureGibbon([32])).not.toThrow();
+  });
+
   it('accepts a Buffer', () => {
     const m = new TestModel(2);
     const buf = Gibbon.create(2).setPosition(5).toBuffer();
@@ -121,6 +133,20 @@ describe('GibbonModel.sanitizeData', () => {
       email: 'a@b.c',
     });
     expect(out).toEqual({ name: 'Alice', email: 'a@b.c' });
+  });
+
+  it('strips prototype pollution keys', () => {
+    const m = new TestModel();
+    const out = m.sanitize({
+      __proto__: { isAdmin: true },
+      constructor: 'bad',
+      prototype: 'bad',
+      name: 'safe',
+    });
+    expect(out).toEqual({ name: 'safe' });
+    expect(out).not.toHaveProperty('__proto__');
+    expect(out).not.toHaveProperty('constructor');
+    expect(out).not.toHaveProperty('prototype');
   });
 
   it('keeps all non-managed keys verbatim', () => {
@@ -167,5 +193,119 @@ describe('GibbonModel.resizeGibbon', () => {
     expect(() => m.resize(buf, 0)).toThrow(/positive integer/);
     expect(() => m.resize(buf, -2)).toThrow(/positive integer/);
     expect(() => m.resize(buf, 1.5)).toThrow(/positive integer/);
+  });
+});
+
+// ─── Empty-position guards ──────────────────────────────────────────────────
+// These model methods have an early-exit when the caller passes an empty Gibbon
+// (no bits set). The guards return before opening any database connection, so
+// the tests below use a dummy pool and verify the call resolves without error.
+
+const UNIT_CONFIG: Config = {
+  dbName: 'test',
+  permissionByteLength: 4,
+  groupByteLength: 4,
+  postgresqlMutationConcurrency: 1,
+  dbStructure: {
+    user: { tableName: 'users' },
+    group: { tableName: 'groups' },
+    permission: { tableName: 'permissions' },
+  },
+};
+
+describe('GibbonUser empty-position guards', () => {
+  let user: GibbonUser;
+
+  beforeAll(async () => {
+    user = new GibbonUser({} as Pool, 4);
+    await user.initialize('test', 'users');
+  });
+
+  it('unsetPermissions is a no-op with an empty gibbon', async () => {
+    await expect(
+      user.unsetPermissions(Gibbon.create(4))
+    ).resolves.toBeUndefined();
+  });
+
+  it('unsetGroups is a no-op with an empty gibbon', async () => {
+    await expect(
+      user.unsetGroups(Gibbon.create(4), {} as IPermissionsResource)
+    ).resolves.toBeUndefined();
+  });
+
+  it('unsubscribeFromGroups is a no-op with empty groups', async () => {
+    const where: WhereClause = { sql: 'TRUE', params: [] };
+    await expect(
+      user.unsubscribeFromGroups(
+        where,
+        Gibbon.create(4),
+        {} as IPermissionsResource
+      )
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe('GibbonGroup empty-position guards', () => {
+  let group: GibbonGroup;
+
+  beforeAll(async () => {
+    group = new GibbonGroup({} as Pool, UNIT_CONFIG);
+    await group.initialize('test', 'groups');
+  });
+
+  it('unsetPermissions is a no-op with an empty gibbon', async () => {
+    await expect(
+      group.unsetPermissions(Gibbon.create(4))
+    ).resolves.toBeUndefined();
+  });
+
+  it('deallocate is a no-op with empty positions', async () => {
+    await expect(group.deallocate(Gibbon.create(4))).resolves.toBeUndefined();
+  });
+
+  it('subscribePermissions is a no-op with empty groups', async () => {
+    await expect(
+      group.subscribePermissions(
+        Gibbon.create(4),
+        Gibbon.create(4).setPosition(1)
+      )
+    ).resolves.toBeUndefined();
+  });
+
+  it('unsubscribePermissions is a no-op with empty groups', async () => {
+    await expect(
+      group.unsubscribePermissions(
+        Gibbon.create(4),
+        Gibbon.create(4).setPosition(1)
+      )
+    ).resolves.toBeUndefined();
+  });
+
+  it('unsubscribePermissions is a no-op with empty permissions', async () => {
+    await expect(
+      group.unsubscribePermissions(
+        Gibbon.create(4).setPosition(1),
+        Gibbon.create(4)
+      )
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe('GibbonPermission empty-position guards', () => {
+  let permission: GibbonPermission;
+
+  beforeAll(async () => {
+    permission = new GibbonPermission({} as Pool, UNIT_CONFIG);
+    await permission.initialize('test', 'permissions');
+  });
+
+  it('deallocate is a no-op with empty positions', async () => {
+    await expect(
+      permission.deallocate(Gibbon.create(4))
+    ).resolves.toBeUndefined();
+  });
+
+  it('validate returns false with empty positions', async () => {
+    await expect(permission.validate(Gibbon.create(4))).resolves.toBe(false);
   });
 });

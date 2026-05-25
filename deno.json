@@ -1,0 +1,16 @@
+{
+  "name": "@icazemier/gibbons-postgresql",
+  "version": "0.0.0",
+  "license": "MIT",
+  "exports": "./src/index.ts",
+  "exclude": ["node_modules/", "build/", "docs/"],
+  "imports": {
+    "pg": "npm:pg@^8.11.0",
+    "pg-cursor": "npm:pg-cursor@^2.10.0",
+    "@icazemier/gibbons": "npm:@icazemier/gibbons@^6.0.7",
+    "cosmiconfig": "npm:cosmiconfig@^9.0.0",
+    "cosmiconfig/dist/types.js": "npm:cosmiconfig@^9.0.0/dist/types.js",
+    "yargs": "npm:yargs@^17.7.2",
+    "yargs/helpers": "npm:yargs@^17.7.2/helpers"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "@icazemier/gibbons-postgresql",
   "private": false,
-  "version": "0.0.0",
+  "version": "1.0.0-beta.5",
   "type": "module",
   "description": "Gibbons is a Node.js module which helps in managing user groups and user permissions with `bitwise` efficiency.",
   "contributors": [
@@ -36,7 +36,8 @@
   },
   "types": "./build/esm/index.d.ts",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0",
+    "bun": ">=1.0.0"
   },
   "os": [
     "darwin",
@@ -48,7 +49,7 @@
     "build:esm": "tsc -p tsconfig-build-esm.json",
     "build:cjs": "tsc -p tsconfig-build-cjs.json",
     "build": "rimraf build && npm run build:esm && npm run build:cjs && npm run fixup && npm run docs",
-    "docs": "typedoc --out docs src/index.ts",
+    "docs": "typedoc",
     "fixup": "node ./fixup.mjs",
     "clean:build": "rimraf build",
     "clean:docs": "rimraf docs",

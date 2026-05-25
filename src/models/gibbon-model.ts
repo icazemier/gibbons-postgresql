@@ -15,6 +15,9 @@ const MANAGED_KEYS = new Set([
   'gibbonIsAllocated',
   'groupsGibbon',
   'permissionsGibbon',
+  '__proto__',
+  'constructor',
+  'prototype',
 ]);
 
 /**
@@ -84,10 +87,16 @@ export abstract class GibbonModel {
       }
       return Gibbon.create(byteLength).mergeWithGibbon(positions);
     } else if (Array.isArray(positions)) {
+      const maxPosition = byteLength * 8;
       for (const pos of positions) {
         if (!Number.isInteger(pos) || pos < 1) {
           throw new RangeError(
             `Position must be a positive integer, got: ${pos}`
+          );
+        }
+        if (pos > maxPosition) {
+          throw new RangeError(
+            `Position ${pos} exceeds capacity (max: ${maxPosition} for byteLength ${byteLength})`
           );
         }
       }
@@ -142,8 +151,12 @@ export abstract class GibbonModel {
   }
 
   /**
-   * Resolve the right queryable for the call: the supplied transactional
+   * Returns the queryable for a model method call: the supplied transactional
    * client when present, otherwise the pool.
+   *
+   * Protected extension point — subclass model methods should use this instead
+   * of accessing `this.pool` directly so they automatically participate in
+   * caller-supplied transactions.
    */
   protected runner(client?: PoolClient): Queryable {
     return pickQueryable(this.pool, client);
@@ -153,6 +166,10 @@ export abstract class GibbonModel {
    * Returns the cursor source for a `PgCursor`: uses the caller-supplied
    * transactional client when present so the cursor shares the transaction,
    * otherwise borrows a fresh client from the pool.
+   *
+   * Protected extension point — use this when constructing a `PgCursor` inside
+   * a subclass method so the cursor automatically participates in any
+   * caller-supplied transaction.
    */
   protected cursorSource(
     client?: PoolClient

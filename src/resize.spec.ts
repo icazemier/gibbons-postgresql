@@ -195,6 +195,12 @@ describe('Resize: expand and shrink', () => {
     );
   });
 
+  it('expandGroups — throws RangeError on non-positive-integer newByteLength', async () => {
+    await expect(adapter.expandGroups(0)).rejects.toThrow(RangeError);
+    await expect(adapter.expandGroups(-1)).rejects.toThrow(RangeError);
+    await expect(adapter.expandGroups(1.5)).rejects.toThrow(RangeError);
+  });
+
   // ---------- shrinkPermissions ----------
 
   it('shrinkPermissions — removes trailing slots and truncates BYTEAs', async () => {
@@ -268,6 +274,11 @@ describe('Resize: expand and shrink', () => {
     );
   });
 
+  it('shrinkPermissions — throws RangeError on non-positive-integer newByteLength', async () => {
+    await expect(adapter.shrinkPermissions(0)).rejects.toThrow(RangeError);
+    await expect(adapter.shrinkPermissions(-1)).rejects.toThrow(RangeError);
+  });
+
   // ---------- shrinkGroups ----------
 
   it('shrinkGroups — removes trailing slots and truncates user groups_gibbon', async () => {
@@ -315,6 +326,11 @@ describe('Resize: expand and shrink', () => {
 
   it('shrinkGroups — throws when newByteLength >= current', async () => {
     await expect(adapter.shrinkGroups(2)).rejects.toThrow('must be less than');
+  });
+
+  it('shrinkGroups — throws RangeError on non-positive-integer newByteLength', async () => {
+    await expect(adapter.shrinkGroups(0)).rejects.toThrow(RangeError);
+    await expect(adapter.shrinkGroups(-1)).rejects.toThrow(RangeError);
   });
 
   // ---------- External transaction ----------

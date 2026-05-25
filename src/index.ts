@@ -5,4 +5,7 @@ export * from './gibbons-postgresql.js';
 export * from './seeder.js';
 export * from './utils.js';
 export { PgCursor } from './cursor.js';
+export type { CursorSource, PgCursorOptions } from './cursor.js';
+export { combineClauses } from './queryable.js';
+export type { Queryable, WhereClause } from './queryable.js';
 export { quoteIdent } from './sql.js';

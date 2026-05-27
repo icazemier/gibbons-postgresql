@@ -1,7 +1,7 @@
 {
   "name": "@icazemier/gibbons-postgresql",
   "private": false,
-  "version": "1.0.0-beta.5",
+  "version": "1.0.0",
   "type": "module",
   "description": "Gibbons is a Node.js module which helps in managing user groups and user permissions with `bitwise` efficiency.",
   "contributors": [
@@ -23,8 +23,7 @@
     "build/"
   ],
   "bin": {
-    "@icazemier/gibbons-postgresql": "./build/esm/bin/cli.js",
-    "gibbons-postgresql": "./build/esm/bin/cli.js"
+    "gibbons-postgresql": "build/esm/bin/cli.js"
   },
   "main": "./build/cjs/index.js",
   "module": "./build/esm/index.js",
@@ -61,7 +60,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/icazemier/gibbons-postgresql"
+    "url": "git+https://github.com/icazemier/gibbons-postgresql.git"
   },
   "homepage": "https://github.com/icazemier/gibbons-postgresql#readme",
   "bugs": {
@@ -96,7 +95,6 @@
     "@commitlint/cli": "^19.6.0",
     "@commitlint/config-conventional": "^19.6.0",
     "@eslint/js": "^10.0.0",
-    "@semantic-release/changelog": "^6.0.3",
     "@types/node": "^22.15.15",
     "@types/pg": "^8.11.0",
     "@types/pg-cursor": "^2.7.0",

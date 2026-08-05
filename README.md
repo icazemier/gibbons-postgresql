@@ -1,3 +1,14 @@
+> [!IMPORTANT]
+> **This repository has moved.** Development continues in
+> **[icazemier/gibbons-monorepo](https://github.com/icazemier/gibbons-monorepo)**,
+> where this package now lives at
+> [`packages/gibbons-postgresql`](https://github.com/icazemier/gibbons-monorepo/tree/main/packages/gibbons-postgresql).
+>
+> This repository is archived and read-only — please open issues and pull
+> requests in the monorepo. The npm package
+> [`@icazemier/gibbons-postgresql`](https://www.npmjs.com/package/@icazemier/gibbons-postgresql) is
+> unaffected and still maintained; it is published from the monorepo now.
+
 <img src="https://raw.githubusercontent.com/icazemier/gibbons/master/gibbons.png" width="200" />
 
 # Gibbons for PostgreSQL
